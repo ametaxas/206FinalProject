@@ -14,7 +14,7 @@ try:
 	cache_diction = json.loads(fcontents)
 	f.close()
 except:
-	cache_diction = {'IG': {}, 'IMBD' : {}}
+	cache_diction = {'IG': {}, 'IMDB' : {}}
 
 def lst_of_days():
 	days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -68,27 +68,27 @@ def get_insta_times(IG_data):
 
 myinstatimes = get_insta_times(myinstadata)
 
-#IMBD
+#IMDB
 def get_tv_data(title):
-	if title not in cache_diction['IMBD']:
-		cache_diction['IMBD'][title] = {}
+	if title not in cache_diction['IMDB']:
+		cache_diction['IMDB'][title] = {}
 		base_url = 'http://www.omdbapi.com/'
-		IMBD_response = requests.get(base_url, params = {'apikey': info.IMBDapi_key, 't':title, 'season': '1'})
-		IMBD_Season1 = json.loads(IMBD_response.text)
-		cache_diction['IMBD'][title]['Season 1'] = IMBD_Season1['Episodes']
-		if int(IMBD_Season1['totalSeasons']) > 1:
+		IMDB_response = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title, 'season': '1'})
+		IMDB_Season1 = json.loads(IMDB_response.text)
+		cache_diction['IMDB'][title]['Season 1'] = IMDB_Season1['Episodes']
+		if int(IMDB_Season1['totalSeasons']) > 1:
 			currentseason = 2
-			while (int(IMBD_Season1['totalSeasons']) - currentseason) >= 0:
-				IMBD_response1 = requests.get(base_url, params = {'apikey': info.IMBDapi_key, 't':title, 'Season': currentseason})
-				IMBD_SeasonX = json.loads(IMBD_response1.text)
-				cache_diction['IMBD'][title]['Season ' + IMBD_SeasonX['Season']] = IMBD_SeasonX['Episodes']
+			while (int(IMDB_Season1['totalSeasons']) - currentseason) >= 0:
+				IMDB_responseX = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title, 'Season': currentseason})
+				IMDB_SeasonX = json.loads(IMDB_responseX.text)
+				cache_diction['IMDB'][title]['Season ' + IMDB_SeasonX['Season']] = IMDB_SeasonX['Episodes']
 				currentseason += 1
 		f = open(fname, 'w')
 		f.write(json.dumps(cache_diction, indent = 4))
 		f.close()
-	return cache_diction['IMBD'][title]
+	return cache_diction['IMDB'][title]
 
-my_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'NCIS', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live']
+my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'NCIS', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live']
 
 def get_tv_info(lst_of_shows):
 	shows = {}
@@ -108,7 +108,7 @@ def get_tv_info(lst_of_shows):
 					NA += 1
 		avg_rating = round(total_rating/(eps - NA), 1)
 		print ('{} was released on {}, {} and now has {} episodes'.format(show, release_day, release_date, eps))
-		print ('The average IMBD rating of {} is {}/10.0 \n'.format(show, avg_rating))
+		print ('The average IMDB rating of {} is {}/10.0 \n'.format(show, avg_rating))
 		shows[show] = (eps, release_day, avg_rating)
 	return (shows)
 
@@ -124,8 +124,8 @@ cur = conn.cursor()
 cur.execute('DROP TABLE IF EXISTS Instagram')
 cur.execute('CREATE TABLE Instagram (Weekday TEXT, Time_Frame TEXT, Num_Posts INTEGER, Total_Likes INTEGER, Total_Comments INTEGER, Avg_Likes INTEGER, Avg_Comments INTEGER)')
 
-cur.execute('DROP TABLE IF EXISTS IMBD')
-cur.execute('CREATE TABLE IMBD (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT)')
+cur.execute('DROP TABLE IF EXISTS IMDB')
+cur.execute('CREATE TABLE IMDB (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT)')
 
 for day in myinstatimes:
 	if day['count'] == 0:
@@ -140,7 +140,7 @@ for day in myinstatimes:
 for show in sorted(my_show_info, key = lambda x: my_show_info[x][2]):
 	tup = my_show_info[show]
 	info = (show, tup[0], tup[1], tup[2])
-	cur.execute('INSERT INTO IMBD (Title, Episode_Count, Release_Day, Rating) VALUES (?,?,?,?)', (info))
+	cur.execute('INSERT INTO IMDB (Title, Episode_Count, Release_Day, Rating) VALUES (?,?,?,?)', (info))
 
 conn.commit()
 
