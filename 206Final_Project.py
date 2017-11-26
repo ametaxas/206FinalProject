@@ -73,7 +73,7 @@ def get_tv_data(title):
 	if title not in cache_diction['IMBD']:
 		cache_diction['IMBD'][title] = {}
 		base_url = 'http://www.omdbapi.com/'
-		IMBD_response = requests.get(base_url, params = {'apikey': info.IMBDapi_key, 't':title, 'Season': '1'})
+		IMBD_response = requests.get(base_url, params = {'apikey': info.IMBDapi_key, 't':title, 'season': '1'})
 		IMBD_Season1 = json.loads(IMBD_response.text)
 		cache_diction['IMBD'][title]['Season 1'] = IMBD_Season1['Episodes']
 		if int(IMBD_Season1['totalSeasons']) > 1:
@@ -88,20 +88,44 @@ def get_tv_data(title):
 		f.close()
 	return cache_diction['IMBD'][title]
 
-lst_of_shows = ['How I Met Your Mother, Game of Thrones, Blackish, Gossip Girl, Greys Anatomy']
+my_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'NCIS', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live']
 
+def get_tv_info(lst_of_shows):
+	shows = {}
+	for show in lst_of_shows:
+		szns = get_tv_data(show)
+		eps = 0
+		total_rating = 0
+		NA = 0
+		release_date = szns['Season 1'][0]['Released']
+		release_day = datetime.datetime.strptime(release_date, '%Y-%m-%d').strftime('%A')
+		for season in szns:
+			for episode in szns[season]:
+				eps += 1
+				if episode['imdbRating'] != 'N/A':
+					total_rating += float(episode['imdbRating'])
+				else:
+					NA += 1
+		avg_rating = round(total_rating/(eps - NA), 1)
+		print ('{} was released on {}, {} and now has {} episodes'.format(show, release_day, release_date, eps))
+		print ('The average IMBD rating of {} is {}/10.0 \n'.format(show, avg_rating))
+		shows[show] = (eps, release_day, avg_rating)
+	return (shows)
 
+my_show_info = get_tv_info(my_shows)
+
+#Open Table
+
+#Alexa
 # #Database creation
 conn = sqlite3.connect('206Final_Project.sqlite')
 cur = conn.cursor()
-
-#alexa
 
 cur.execute('DROP TABLE IF EXISTS Instagram')
 cur.execute('CREATE TABLE Instagram (Weekday TEXT, Time_Frame TEXT, Num_Posts INTEGER, Total_Likes INTEGER, Total_Comments INTEGER, Avg_Likes INTEGER, Avg_Comments INTEGER)')
 
 cur.execute('DROP TABLE IF EXISTS IMBD')
-cur.execute('CREATE TABLE IMBD (Title TEXT, Season TEXT, Episode TEXT, Release_Date TEXT, Release_Day TEXT, Rating TEXT)')
+cur.execute('CREATE TABLE IMBD (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT)')
 
 for day in myinstatimes:
 	if day['count'] == 0:
@@ -113,14 +137,10 @@ for day in myinstatimes:
 	info = (day['time'].split(' ')[0], day['time'].split(' ')[1], day['count'], day['likes'], day['comments'], avgl, avgc)
 	cur.execute('INSERT INTO Instagram (Weekday, Time_Frame, Num_Posts, Total_Likes, Total_Comments, Avg_Likes, Avg_Comments) VALUES (?,?,?,?,?,?,?)', info)
 
-# count = 100
-# for season in HIMYMdata:
-# 	for episode in HIMYMdata[season]:
-# 		if count > 0:
-# 			IMBDreleaseday = datetime.datetime.strptime(episode['Released'], '%Y-%m-%d').strftime('%A')
-# 			info = (episode['Title'], season.split(' ')[1], episode['Episode'], episode['Released'], IMBDreleaseday, episode['imdbRating'])
-# 			cur.execute('INSERT INTO IMBD (Title, Season, Episode, Release_Date, Release_Day, Rating) VALUES (?,?,?,?,?,?)', (info))
-# 			count -= 1
+for show in sorted(my_show_info, key = lambda x: my_show_info[x][2]):
+	tup = my_show_info[show]
+	info = (show, tup[0], tup[1], tup[2])
+	cur.execute('INSERT INTO IMBD (Title, Episode_Count, Release_Day, Rating) VALUES (?,?,?,?)', (info))
 
 conn.commit()
 
