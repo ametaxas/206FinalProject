@@ -108,11 +108,11 @@ def get_tv_info(lst_of_shows):
 					NA += 1
 		avg_rating = round(total_rating/(eps - NA), 1)
 		print ('{} was released on {}, {} and now has {} episodes'.format(show, release_day, release_date, eps))
-		print ('The average IMDB rating of {} is {}/10.0 \n'.format(show, avg_rating))
+		print ('The average IMDB rating of all {} episodes is {}/10.0 \n'.format(show, avg_rating))
 		shows[show] = (eps, release_day, avg_rating)
 	return (shows)
 
-my_show_info = get_tv_info(my_shows)
+my_show_info = get_tv_info(my_IMDB_shows)
 
 #Open Table
 
