@@ -7,6 +7,9 @@ import datetime
 import re
 import sqlite3
 import time
+import plotly
+import plotly.plotly as py
+import plotly.graph_objs as go
 
 #caching pattern
 fname = '206Final_Project.json'
@@ -213,7 +216,7 @@ def get_nyt_info(term):
 
 um_nyt_info = get_nyt_info('University of Michigan')
 
-# #Database creation
+#Database creation
 conn = sqlite3.connect('206Final_Project.sqlite')
 cur = conn.cursor()
 
@@ -252,7 +255,69 @@ for article in um_nyt_info:
 	cur.execute('INSERT INTO NYT (Headline, Post_Day, Document_Type, Word_Count, URL) VALUES (?,?,?,?,?)', tup)
 conn.commit()
 
-
-
-
-
+#Data Visualization
+plotly.tools.set_credentials_file(username='ametaxas', api_key='13PsYGsqp1L1Gl3wPN9i')
+total_insta_count = sum([int(dic['count']) for dic in myinstatimes])
+trace1 = go.Bar(
+	x = [dic['time'] for dic in myinstatimes],
+	y = [(dic['count']/total_insta_count) for dic in myinstatimes],
+	text = ['{}/{} posts'.format(str(dic['count']), str(total_insta_count)) for dic in myinstatimes],
+	name = 'Instagram',
+	marker = dict(
+		color='rgb(146,34,150)',
+		line=dict(
+			color='rgb(232,116,16)',
+			width=2),
+		)
+)
+total_tumblr_count = sum([int(dic['count']) for dic in my_tumblr_info])
+trace2 = go.Bar(
+	x = [dic['time'] for dic in my_tumblr_info],
+	y = [(int(dic['count'])/total_tumblr_count) for dic in my_tumblr_info],
+	text = ['{}/{} posts'.format(str(dic['count']), str(total_tumblr_count)) for dic in my_tumblr_info],
+	name = 'Tumblr',
+	marker = dict(
+		color='rgb(40,75,104)',
+		line=dict(
+			color='rgb(77,79,81)',
+			width=2),
+		)
+)
+data = [trace1, trace2]
+layout = go.Layout(
+	title = 'Instagram and Tumblr activity',
+	xaxis=dict(
+		title='Time of Day',
+		titlefont=dict(
+			size=16,
+			color='rgb(107,107,107)'
+		),
+		tickfont = dict(
+			size=14,
+			color='rgb(107,107,107)'
+		)
+	),
+	yaxis=dict(
+		title='Percentage of Posts',
+		titlefont=dict(
+			size=16,
+			color='rgb(107,107,107)'
+		),
+		tickfont = dict(
+			size=14,
+			color='rgb(107,107,107)'
+		),
+		tickformat='%'
+	),
+	legend=dict(
+		x=0,
+		y=1.0,
+		bgcolor='rgba(255,255,255,0)',
+		bordercolor='rgba(255,255,255,0)'
+	),
+	barmode = 'group',
+	bargap = 0.0,
+	bargroupgap=0.0,
+)
+fig = go.Figure(data=data, layout=layout)
+py.iplot(fig, filename='IG_TB_bar')
