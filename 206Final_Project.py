@@ -10,7 +10,11 @@ import time
 import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
-
+from os import path
+from PIL import Image
+import numpy as np
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud, ImageColorGenerator
 #caching pattern
 fname = '206Final_Project.json'
 try:
@@ -256,7 +260,8 @@ for article in um_nyt_info:
 conn.commit()
 
 #Data Visualization
-plotly.tools.set_credentials_file(username='ametaxas', api_key='13PsYGsqp1L1Gl3wPN9i')
+#	Tumblr and Instagram
+plotly.tools.set_credentials_file(username='ametaxas', api_key=info.PLapi_key)
 total_insta_count = sum([int(dic['count']) for dic in myinstatimes])
 trace1 = go.Bar(
 	x = [dic['time'] for dic in myinstatimes],
@@ -321,3 +326,13 @@ layout = go.Layout(
 )
 fig = go.Figure(data=data, layout=layout)
 py.iplot(fig, filename='IG_TB_bar')
+#		NYT
+d = path.dirname(__file__)
+text = (' ').join(um_nyt_info)
+um_mask = np.array(Image.open(path.join(d, 'm.png')))
+image_colors = ImageColorGenerator(um_mask)
+wc = WordCloud(mask= um_mask).generate(text)
+plt.imshow(wc.recolor(color_func=image_colors), interpolation='bilinear')
+plt.axis('off')
+plt.figure()
+wc.to_file(path.join(d, 'um.png'))
