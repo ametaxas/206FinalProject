@@ -14,7 +14,7 @@ from os import path
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-from wordcloud import WordCloud, ImageColorGenerator
+from wordcloud import WordCloud, ImageColorGenerator, STOPWORDS
 #caching pattern
 fname = '206Final_Project.json'
 try:
@@ -23,7 +23,7 @@ try:
 	cache_diction = json.loads(fcontents)
 	f.close()
 except:
-	cache_diction = {'IG': {}, 'TB': {}, 'IMDB' : {}, 'NYT': {}}
+	cache_diction = {'IG': {}, 'TB': {}, 'IMDB' : {}, 'NYT': {}, 'OT': {}}
 
 #Instagram 
 print ('API #1: Instagram\n')
@@ -88,11 +88,11 @@ def lst_of_TB_days():
 	for day in days:
 		for time in time_frames:
 			sorted_days_and_times.append(day + ' ' + time)
-	x = [{'time': timestamp ,'post_type': [] , 'count': 0} for timestamp in sorted_days_and_times]
+	x = [{'time': timestamp ,'post_type': [] , 'total_notes':0,'count': 0} for timestamp in sorted_days_and_times]
 	return (x)
 
 def get_tumblr_data():
-	blog = input('Enter a tumblr url! example.tumblr.com : ')
+	blog = input('Enter a tumblr url! example.tumblr.com: ')
 	if blog not in cache_diction['TB']:
 		cache_diction['TB'][blog] = []
 		offset = 0
@@ -120,6 +120,7 @@ def get_tumblr_info(lst_of_posts):
 		TB_post_time = item['date'][:-4]
 		TB_post_day = datetime.datetime.strptime(TB_post_time, '%Y-%m-%d %H:%M:%S').strftime('%A')
 		TB_post_timeframe = re.findall('[0-9]+', TB_post_time)[3]
+		TB_post_notes = item['note_count']
 		for time_frame in time_frames:
 			if TB_post_timeframe in time_frames[time_frame]:
 				TB_post_timeframe = time_frame
@@ -131,6 +132,7 @@ def get_tumblr_info(lst_of_posts):
 				new_dic = dic
 				if TB_post_type not in new_dic['post_type']:
 					new_dic['post_type'].append(TB_post_type)
+				new_dic['total_notes'] += TB_post_notes
 				new_dic['count'] += 1
 				x[ind] = new_dic
 				break
@@ -140,32 +142,38 @@ my_tumblr_info = get_tumblr_info(my_tumblr_data)
 
 #IMDB
 print ('\n------------------------------------\n')
-print ('API #3: IMBD\n')
+print ('API #3: IMDB\n')
 def get_tv_data(title):
 	if title not in cache_diction['IMDB']:
-		cache_diction['IMDB'][title] = {}
+		cache_diction['IMDB'][title] = {'Info': {}, 'Seasons': {}}
 		base_url = 'http://www.omdbapi.com/'
-		IMDB_response = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title, 'season': '1'})
-		IMDB_Season1 = json.loads(IMDB_response.text)
-		cache_diction['IMDB'][title]['Season 1'] = IMDB_Season1['Episodes']
-		if int(IMDB_Season1['totalSeasons']) > 1:
-			currentseason = 2
-			while (int(IMDB_Season1['totalSeasons']) - currentseason) >= 0:
+		IMDB_response = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title})
+		IMDB_Show_Info = json.loads(IMDB_response.text)
+		totalszns = int(IMDB_Show_Info['totalSeasons'])
+		cache_diction['IMDB'][title]['Info']['Genre'] = IMDB_Show_Info['Genre'].split(', ')
+		cache_diction['IMDB'][title]['Info']['Runtime'] = IMDB_Show_Info['Runtime']
+		cache_diction['IMDB'][title]['Info']['Rated'] = IMDB_Show_Info['Rated']
+		cache_diction['IMDB'][title]['Info']['Actors'] = IMDB_Show_Info['Actors']
+		cache_diction['IMDB'][title]['Info']['Plot'] = IMDB_Show_Info['Plot']
+		currentseason = 1
+		while (totalszns - currentseason) >= 0:
 				IMDB_responseX = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title, 'Season': currentseason})
 				IMDB_SeasonX = json.loads(IMDB_responseX.text)
-				cache_diction['IMDB'][title]['Season ' + IMDB_SeasonX['Season']] = IMDB_SeasonX['Episodes']
+				cache_diction['IMDB'][title]['Seasons']['Season ' + IMDB_SeasonX['Season']] = IMDB_SeasonX['Episodes']
 				currentseason += 1
-		f = open(fname, 'w')
-		f.write(json.dumps(cache_diction, indent = 4))
-		f.close()
+		# f = open(fname, 'w')
+		# f.write(json.dumps(cache_diction, indent = 4))
+		# f.close()
 	return cache_diction['IMDB'][title]
 
-my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'NCIS', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live']
+my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live', 'Once Upon a Time', 'Supergirl', 'Chicago P.D.', 'The Sopranos', 'House of Cards', 'House', 'The X-Files', 'Downton Abbey', 'Mr. Robot', 'Mad Men', 'Big Little Lies', 'The Night Of']
 
 def get_tv_info(lst_of_shows):
-	shows = {}
+	shows = []
 	for show in lst_of_shows:
-		szns = get_tv_data(show)
+		showdata = get_tv_data(show)
+		szns = showdata['Seasons']
+		showinfo = showdata['Info']
 		eps = 0
 		total_rating = 0
 		NA = 0
@@ -181,12 +189,12 @@ def get_tv_info(lst_of_shows):
 		avg_rating = round(total_rating/(eps - NA), 1)
 		print ('{} was released on {}, {} and now has {} episodes'.format(show, release_day, release_date, eps))
 		print ('The average IMDB rating of all {} episodes is {}/10.0 \n'.format(show, avg_rating))
-		shows[show] = (eps, release_day, avg_rating)
+		shows.append({'Show':show, 'Episodes': eps, 'Release_Day':release_day, 'Avg_Rating':avg_rating, 'Genre': showinfo['Genre'], 'Runtime': showinfo['Runtime'], 'Rated': showinfo['Rated'], 'Actors': showinfo['Actors'], 'Plot': showinfo['Plot']})
 	return (shows)
 
 my_show_info = get_tv_info(my_IMDB_shows)
 
-#NYT
+#New York Times
 print ('\n------------------------------------\n')
 print ('API #4: NYT\n')
 def get_nyt_data(term):
@@ -215,10 +223,41 @@ def get_nyt_info(term):
 		post_day = datetime.datetime.strptime(post_date, '%Y-%m-%d').strftime('%A')
 		info[article['headline']['main']] = (post_day, article['document_type'], article['word_count'], article['web_url'])
 	print ("Here's a list of the 100 most recent articles that contain the search term '{}':\n".format(term))
-	print ([item for item in info])
+	num = 1
+	for article in info:
+		print (str(num) + '. ' + article)
+		num += 1
 	return (info)
 
 um_nyt_info = get_nyt_info('University of Michigan')
+
+#OpenTable
+print ('\n------------------------------------\n')
+print ('API #5: OpenTable\n')
+
+def get_opentable_data():
+	OTcity = input('What city are you looking to eat in? ')
+	if OTcity not in cache_diction['OT']:
+		OTbase_url = 'https://opentable.herokuapp.com/api/restaurants'
+		OTrequest = requests.get(OTbase_url, params = {'city':OTcity, 'per_page':'100'})
+		OTdata = json.loads(OTrequest.text)['restaurants']
+		cache_diction['OT'][OTcity] = OTdata
+		f = open(fname, 'w')
+		f.write(json.dumps(cache_diction, indent = 4))
+		f.close()
+	return cache_diction['OT'][OTcity]
+
+my_opentable_data = get_opentable_data()
+
+def get_opentable_info(lst_of_restaurants):
+	restaurant_dic = {}
+	for restaurant in lst_of_restaurants:
+		OTfull_address = restaurant['address']+ ', ' + restaurant['city'] + ' ' + restaurant['state'] + ', ' + restaurant['postal_code']
+		OTphone = '({}){}-{}'.format(restaurant['phone'][:3], restaurant['phone'][3:6], restaurant['phone'][-5:-1])
+		restaurant_dic[restaurant['name']] = {'Address': OTfull_address, 'Phone': OTphone, 'Price_Level': restaurant['price'], 'Coord': (restaurant['lat'], restaurant['lng'])}
+	return restaurant_dic
+
+my_opentable_info = get_opentable_info(my_opentable_data)
 
 #Database creation
 conn = sqlite3.connect('206Final_Project.sqlite')
@@ -228,13 +267,16 @@ cur.execute('DROP TABLE IF EXISTS Instagram')
 cur.execute('CREATE TABLE Instagram (Weekday TEXT, Time_Frame TEXT, Num_Posts INTEGER, Total_Likes INTEGER, Total_Comments INTEGER, Avg_Likes INTEGER, Avg_Comments INTEGER)')
 
 cur.execute('DROP TABLE IF EXISTS Tumblr')
-cur.execute('CREATE TABLE Tumblr (Weekday TEXT, Time_Frame TEXT, Post_Types TEXT, Count TEXT)')
+cur.execute('CREATE TABLE Tumblr (Weekday TEXT, Time_Frame TEXT, Num_Posts TEXT, Post_Types TEXT, Total_Notes INTEGER, Avg_Notes INTEGER)')
 
 cur.execute('DROP TABLE IF EXISTS IMDB')
-cur.execute('CREATE TABLE IMDB (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT)')
+cur.execute('CREATE TABLE IMDB (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT, Genre TEXT, Runtime TEXT, Rated TEXT, Actors TEXT, Plot TEXT)')
 
 cur.execute('DROP TABLE IF EXISTS NYT')
 cur.execute('CREATE TABLE NYT (Headline TEXT, Post_Day TEXT, Document_Type TEXT, Word_Count TEXT, URL TEXT)')
+
+cur.execute('DROP TABLE IF EXISTS OpenTable')
+cur.execute('CREATE TABLE OpenTable (Name TEXT, Address TEXT, Phone TEXT, Price_Level INT, Coordinates TEXT)')
 
 for day in myinstatimes:
 	if day['count'] == 0:
@@ -247,20 +289,28 @@ for day in myinstatimes:
 	cur.execute('INSERT INTO Instagram (Weekday, Time_Frame, Num_Posts, Total_Likes, Total_Comments, Avg_Likes, Avg_Comments) VALUES (?,?,?,?,?,?,?)', tup)
 
 for day in my_tumblr_info:
-	tup = (day['time'].split(' ')[0], day['time'].split(' ')[1], (', '.join(day['post_type'])), day['count'])
-	cur.execute('INSERT INTO Tumblr (Weekday, Time_Frame, Post_Types, Count) VALUES (?,?,?,?)', tup)
+	if day['count'] == 0:
+		avgn = 0
+	else:
+		avgn = int((day['total_notes'])/(day['count']))
+	tup = (day['time'].split(' ')[0], day['time'].split(' ')[1], day['count'], (', '.join(day['post_type'])), day['total_notes'], avgn)
+	cur.execute('INSERT INTO Tumblr (Weekday, Time_Frame, Num_Posts, Post_Types, Total_Notes, Avg_Notes) VALUES (?,?,?,?,?,?)', tup)
 
-for show in sorted(my_show_info, key = lambda x: my_show_info[x][2]):
-	tup = (show, ) + my_show_info[show]
-	cur.execute('INSERT INTO IMDB (Title, Episode_Count, Release_Day, Rating) VALUES (?,?,?,?)', tup)
+for show in sorted(my_show_info, key = lambda x: x['Episodes']):
+	tup = (show['Show'], show['Episodes'], show['Release_Day'], show['Avg_Rating'], ', '.join(show['Genre']), show['Runtime'], show['Rated'], show['Actors'], show['Plot'])
+	cur.execute('INSERT INTO IMDB (Title, Episode_Count, Release_Day, Rating, Genre, Runtime, Rated, Actors, Plot) VALUES (?,?,?,?,?,?,?,?,?)', tup)
 
 for article in um_nyt_info:
 	tup = (article, ) + um_nyt_info[article]
 	cur.execute('INSERT INTO NYT (Headline, Post_Day, Document_Type, Word_Count, URL) VALUES (?,?,?,?,?)', tup)
+
+for rest in my_opentable_info:
+	tup = (rest, my_opentable_info[rest]['Address'], my_opentable_info[rest]['Phone'], my_opentable_info[rest]['Price_Level'], str(my_opentable_info[rest]['Coord']))
+	cur.execute('INSERT INTO OpenTable (Name, Address, Phone, Price_Level, Coordinates) VALUES (?,?,?,?,?)', tup)
 conn.commit()
 
 #Data Visualization
-#	Tumblr and Instagram
+#	Tumblr and Instagram Bar Chart
 plotly.tools.set_credentials_file(username='ametaxas', api_key=info.PLapi_key)
 total_insta_count = sum([int(dic['count']) for dic in myinstatimes])
 trace1 = go.Bar(
@@ -290,6 +340,17 @@ trace2 = go.Bar(
 )
 data = [trace1, trace2]
 layout = go.Layout(
+	autosize = False,
+	width = 1000,
+	height = 1000,
+	hovermode = 'closest',
+	margin = go.Margin(
+		l=100,
+		r=50,
+		b=300,
+		t=100,
+		pad=4
+	),
 	title = 'Instagram and Tumblr activity',
 	xaxis=dict(
 		title='Time of Day',
@@ -326,13 +387,40 @@ layout = go.Layout(
 )
 fig = go.Figure(data=data, layout=layout)
 py.iplot(fig, filename='IG_TB_bar')
-#		NYT
+#		NYT Wordcloud
 d = path.dirname(__file__)
 text = (' ').join(um_nyt_info)
 um_mask = np.array(Image.open(path.join(d, 'm.png')))
 image_colors = ImageColorGenerator(um_mask)
-wc = WordCloud(mask= um_mask).generate(text)
+stopwords = set(STOPWORDS)
+stopwords.add('Dies')
+wc = WordCloud(mask= um_mask, stopwords=stopwords).generate(text)
 plt.imshow(wc.recolor(color_func=image_colors), interpolation='bilinear')
 plt.axis('off')
 plt.figure()
 wc.to_file(path.join(d, 'um.png'))
+#		IMDB Scatterplot
+genre_colors = {'Comedy': 'rgb(255,240,79)', 'Adventure': 'rgb(24,165,38)', 'Drama': 'rgb(113,27,163)', 'Crime': 'rgb(204,132,0)', 'Action': 'rgb(255,79,79)'}
+trace = go.Scatter(
+	x = [show['Episodes'] for show in my_show_info],
+	y = [show['Avg_Rating'] for show in my_show_info],
+	legendgroup = [show['Genre'][0] for show in my_show_info],
+	mode = 'markers',
+	text = [show['Show'] for show in my_show_info],
+	name = [show['Genre'][0] for show in my_show_info],
+	marker = dict(
+		size = 20,
+		color = [genre_colors[(show['Genre'][0])] for show in my_show_info],
+		line = dict(
+			width = 1,
+			color = 'rgb(0,0,0)')
+		)
+)
+data = [trace]
+layout = dict(
+	title = 'Episode Count vs. Rating',
+	yaxis = dict(title = 'Rating'),
+	xaxis = dict(title = 'Episode Count'),
+	showlegend = True)
+fig = dict(data = data, layout = layout)
+py.iplot(fig, filename = 'IMDB_Scatter')
