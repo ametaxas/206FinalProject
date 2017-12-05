@@ -27,51 +27,51 @@ except:
 
 #Instagram 
 print ('API #1: Instagram\n')
-def lst_of_IG_days():
+def lst_of_IG_days(): #creates a list of dictionaries for every day and timeframe of insta posts
 	days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 	time_frames = ['12:00am-5:59am', '6:00am-11:59am','12:00pm-5:59pm', '6:00pm-11:59pm']
 	sorted_days_and_times = []
 	for day in days:
 		for time in time_frames:
 			sorted_days_and_times.append(day + ' ' + time)
-	x = [{'time': timestamp ,'likes': 0 , 'comments' : 0, 'count': 0} for timestamp in sorted_days_and_times]
+	x = [{'time': timestamp ,'likes': 0 , 'comments' : 0, 'count': 0} for timestamp in sorted_days_and_times] #every time has its own dic where the likes comments and count keys are all set to zero
 	return (x)
 
 def get_insta_data():
-	sn = input("What is the authenticating user's screenanme?: @")
+	sn = input("What is the authenticating user's screenanme?: @") #needed to check whether the authenticating user is already in the cache
 	if sn not in cache_diction['IG']:
 		IGbase_url = 'https://api.instagram.com/v1/users/self/media/recent/?'
-		IG_request = requests.get(IGbase_url, params = {'client_id': info.IGclient_id, 'access_token' : info.IGaccess_code, 'count': '20'})
-		IG_data = json.loads(IG_request.text)['data']
+		IG_request = requests.get(IGbase_url, params = {'client_id': info.IGclient_id, 'access_token' : info.IGaccess_code, 'count': '20'}) #calls the api, count = 20 which is the max for an authenticating user in sandbox mode
+		IG_data = json.loads(IG_request.text)['data'] #load the instagram info within the data key into the IG_data variable
 		cache_diction['IG'][sn] = IG_data
-		f = open(fname, 'w')
-		f.write(json.dumps(cache_diction, indent = 4))
-		f.close()
+		f = open(fname, 'w') #open the cache file 
+		f.write(json.dumps(cache_diction, indent = 4)) #write to the cache file
+		f.close() #close
 	return cache_diction['IG'][sn]
 
-myinstadata = get_insta_data()
+myinstadata = get_insta_data() #assigning the varibale my insta data to the info pulled from the get_insta_data function
 
 def get_insta_times(IG_data):
-	x = lst_of_IG_days()
-	time_frames = {'12:00am-5:59am': [0,1,2,3,4,5], '6:00am-11:59am' : [6,7,8,9,10,11], '12:00pm-5:59pm' : [12,13,14,15,16,17], '6:00pm-11:59pm' : [18,19,20,21,22,23]}
+	x = lst_of_IG_days() #calls the function defined earleir that gets a list of dictionaries to keep track of likes,comments, and count of each post
+	time_frames = {'12:00am-5:59am': [0,1,2,3,4,5], '6:00am-11:59am' : [6,7,8,9,10,11], '12:00pm-5:59pm' : [12,13,14,15,16,17], '6:00pm-11:59pm' : [18,19,20,21,22,23]} #initializes a dictionary where the keys are the time frames and the values are a list containing the hours associated with that time frame
 	for item in IG_data:
-		IGpost_time = (datetime.datetime.fromtimestamp(int(item['created_time'])).strftime('%Y-%m-%d %H'))
-		IGpost_day = datetime.datetime.strptime(IGpost_time, '%Y-%m-%d %H').strftime('%A')
+		IGpost_time = (datetime.datetime.fromtimestamp(int(item['created_time'])).strftime('%Y-%m-%d %H')) #converts the IG timestamp to a time in the format %Y-%m-%d %H
+		IGpost_day = datetime.datetime.strptime(IGpost_time, '%Y-%m-%d %H').strftime('%A') #converts the post time into a post day using datetime
 		IGpost_timeframe = IGpost_time.split(' ')[-1] #indexing the hour of the post
 		for time_frame in time_frames:
 			if int(IGpost_timeframe) in time_frames[time_frame]: #if the posted hour is within the list of hours
 				IGpost_timeframe = time_frame #update the timeframe variable to accurately represent which timeframe the posting hour falls into
 				break
-		IGlikes = item['likes']['count']
-		IGcomments = item['comments']['count']
-		akey = (IGpost_day + ' ' + IGpost_timeframe) 
+		IGlikes = item['likes']['count'] #pulls like information from the post
+		IGcomments = item['comments']['count'] #pulls comment information from the post
+		akey = (IGpost_day + ' ' + IGpost_timeframe) #creats a key that reflects the day and timeframe of the post
 		for dic in x:
-			if dic['time'] == akey:
+			if dic['time'] == akey: #finds the dic in lst_of_IG_days that reflects the day/time of the post
 				ind = x.index(dic)
 				new_dic = dic
-				new_dic['likes'] += IGlikes
-				new_dic['comments'] += IGcomments
-				new_dic['count'] += 1
+				new_dic['likes'] += IGlikes #adds overall likes to the time frame info
+				new_dic['comments'] += IGcomments #adds overall comments to the time fram info
+				new_dic['count'] += 1 #updates count by 1 to reflect an additional post in that time fram
 				x[ind] = new_dic
 				break
 	return (x)
@@ -81,49 +81,49 @@ myinstatimes = get_insta_times(myinstadata)
 #Tumblr
 print ('\n------------------------------------\n')
 print ('API #2: Tumblr\n')
-def lst_of_TB_days():
+def lst_of_TB_days(): #similar function to lst_of_IG_Days but with different keys in the returned list of dictioinaries to reflect Tumblr data
 	days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 	time_frames = ['12:00am-5:59am', '6:00am-11:59am','12:00pm-5:59pm', '6:00pm-11:59pm']
 	sorted_days_and_times = []
 	for day in days:
 		for time in time_frames:
 			sorted_days_and_times.append(day + ' ' + time)
-	x = [{'time': timestamp ,'post_type': [] , 'total_notes':0,'count': 0} for timestamp in sorted_days_and_times]
+	x = [{'time': timestamp ,'post_type': [] , 'total_notes':0,'count': 0} for timestamp in sorted_days_and_times] #every time has its own dic with post type, total notes, and count all initalized as empty/0
 	return (x)
 
 def get_tumblr_data():
-	blog = input('Enter a tumblr url! example.tumblr.com: ')
-	if blog not in cache_diction['TB']:
+	blog = input('Enter a tumblr url! example.tumblr.com: ') #can by any blog! not just authenticating users!
+	if blog not in cache_diction['TB']: 
 		cache_diction['TB'][blog] = []
-		offset = 0
+		offset = 0 #initalize offset as 0, will beupdated later to accumulate 100 posts
 		while True:
 			TB_request = requests.get('http://api.tumblr.com/v2/blog/{}/posts?api_key={}'.format(blog, info.TBconsumer_key), params = {'offset': offset})
 			TB_data = json.loads(TB_request.text)
 			for item in TB_data['response']['posts']:
-				cache_diction['TB'][blog].append(item)
-			if len(cache_diction['TB'][blog]) != 100:
-				offset += 20
+				cache_diction['TB'][blog].append(item) #append the list associated with the dictionary variabe of the blog name to add all the posts 
+			if len(cache_diction['TB'][blog]) != 100: #if there arent 100 posts in the list
+				offset += 20 #update offset to pull 20 later posts
 			else:
 				break
-		f = open(fname, 'w')
-		f.write(json.dumps(cache_diction, indent = 4))
-		f.close()
+		f = open(fname, 'w') #open the cache file
+		f.write(json.dumps(cache_diction, indent = 4)) #write to the cache file
+		f.close() #close the cache file
 	return cache_diction['TB'][blog]
 
 my_tumblr_data = get_tumblr_data()
 
 def get_tumblr_info(lst_of_posts):
 	x = lst_of_TB_days()
-	time_frames = {'12:00am-5:59am': ['00','01','02','03','04','05'], '6:00am-11:59am' : ['06','07','08','09','10','11'], '12:00pm-5:59pm' : ['12','13','14','15','16','17'], '6:00pm-11:59pm' : ['18','19','20','21','22','23']}
+	time_frames = {'12:00am-5:59am': ['00','01','02','03','04','05'], '6:00am-11:59am' : ['06','07','08','09','10','11'], '12:00pm-5:59pm' : ['12','13','14','15','16','17'], '6:00pm-11:59pm' : ['18','19','20','21','22','23']} #similar to the tiemframes in the IG function, values in the list are now strings to be compatible with the format that returns from the Tumblr api call
 	for item in lst_of_posts:
-		TB_post_type = item['type']
-		TB_post_time = item['date'][:-4]
-		TB_post_day = datetime.datetime.strptime(TB_post_time, '%Y-%m-%d %H:%M:%S').strftime('%A')
-		TB_post_timeframe = re.findall('[0-9]+', TB_post_time)[3]
-		TB_post_notes = item['note_count']
+		TB_post_type = item['type'] #pull post type
+		TB_post_time = item['date'][:-4] #pull the date of the post (format %Y-m%-%d %H:%M:%S)
+		TB_post_day = datetime.datetime.strptime(TB_post_time, '%Y-%m-%d %H:%M:%S').strftime('%A') #convert the date into a day of the week
+		TB_post_timeframe = re.findall('[0-9]+', TB_post_time)[3] #pull the hour from the post time
+		TB_post_notes = item['note_count'] #pull the number of notes on the post
 		for time_frame in time_frames:
-			if TB_post_timeframe in time_frames[time_frame]:
-				TB_post_timeframe = time_frame
+			if TB_post_timeframe in time_frames[time_frame]: 
+				TB_post_timeframe = time_frame #update timeframe to reflect timeframe instead of hour
 				break
 		akey = (TB_post_day + ' ' + TB_post_timeframe)
 		for dic in x:
@@ -161,9 +161,9 @@ def get_tv_data(title):
 				IMDB_SeasonX = json.loads(IMDB_responseX.text)
 				cache_diction['IMDB'][title]['Seasons']['Season ' + IMDB_SeasonX['Season']] = IMDB_SeasonX['Episodes']
 				currentseason += 1
-		# f = open(fname, 'w')
-		# f.write(json.dumps(cache_diction, indent = 4))
-		# f.close()
+		f = open(fname, 'w')
+		f.write(json.dumps(cache_diction, indent = 4))
+		f.close()
 	return cache_diction['IMDB'][title]
 
 my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live', 'Once Upon a Time', 'Supergirl', 'Chicago P.D.', 'The Sopranos', 'House of Cards', 'House', 'The X-Files', 'Downton Abbey', 'Mr. Robot', 'Mad Men', 'Big Little Lies', 'The Night Of']
@@ -420,7 +420,7 @@ data = [trace]
 layout = dict(
 	title = 'Episode Count vs. Rating',
 	yaxis = dict(title = 'Rating'),
-	xaxis = dict(title = 'Episode Count'),
-	showlegend = True)
+	xaxis = dict(title = 'Episode Count')
+)
 fig = dict(data = data, layout = layout)
 py.iplot(fig, filename = 'IMDB_Scatter')
