@@ -30,14 +30,14 @@ print ('API #1: Instagram\n')
 def lst_of_IG_days(): #creates a list of dictionaries for every day and timeframe of insta posts
 	days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 	time_frames = ['12:00am-5:59am', '6:00am-11:59am','12:00pm-5:59pm', '6:00pm-11:59pm']
-	sorted_days_and_times = []
+	sorted_days_and_times = [] #will append to get every day in time fram in order
 	for day in days:
 		for time in time_frames:
-			sorted_days_and_times.append(day + ' ' + time)
+			sorted_days_and_times.append(day + ' ' + time) #each item in the list is a string containing the day and time
 	x = [{'time': timestamp ,'likes': 0 , 'comments' : 0, 'count': 0} for timestamp in sorted_days_and_times] #every time has its own dic where the likes comments and count keys are all set to zero
 	return (x)
 
-def get_insta_data():
+def get_insta_data(): #data accumulation
 	sn = input("What is the authenticating user's screenanme?: @") #needed to check whether the authenticating user is already in the cache
 	if sn not in cache_diction['IG']:
 		IGbase_url = 'https://api.instagram.com/v1/users/self/media/recent/?'
@@ -47,11 +47,11 @@ def get_insta_data():
 		f = open(fname, 'w') #open the cache file 
 		f.write(json.dumps(cache_diction, indent = 4)) #write to the cache file
 		f.close() #close
-	return cache_diction['IG'][sn]
+	return cache_diction['IG'][sn] #returns a list of dictionaries containing info of the authenticating users 20 most recent posts
 
 myinstadata = get_insta_data() #assigning the varibale my insta data to the info pulled from the get_insta_data function
 
-def get_insta_times(IG_data):
+def get_insta_times(IG_data): #data insights
 	x = lst_of_IG_days() #calls the function defined earleir that gets a list of dictionaries to keep track of likes,comments, and count of each post
 	time_frames = {'12:00am-5:59am': [0,1,2,3,4,5], '6:00am-11:59am' : [6,7,8,9,10,11], '12:00pm-5:59pm' : [12,13,14,15,16,17], '6:00pm-11:59pm' : [18,19,20,21,22,23]} #initializes a dictionary where the keys are the time frames and the values are a list containing the hours associated with that time frame
 	for item in IG_data:
@@ -72,11 +72,11 @@ def get_insta_times(IG_data):
 				new_dic['likes'] += IGlikes #adds overall likes to the time frame info
 				new_dic['comments'] += IGcomments #adds overall comments to the time fram info
 				new_dic['count'] += 1 #updates count by 1 to reflect an additional post in that time fram
-				x[ind] = new_dic
+				x[ind] = new_dic #replace the dictionary with updated information
 				break
-	return (x)
+	return (x) #returns a list of dictionaries containing the sum of likes, comments, and the count of every post in the specified timefram
 
-myinstatimes = get_insta_times(myinstadata)
+myinstatimes = get_insta_times(myinstadata) #will be refrenced for databse insertion
 
 #Tumblr
 print ('\n------------------------------------\n')
@@ -84,19 +84,19 @@ print ('API #2: Tumblr\n')
 def lst_of_TB_days(): #similar function to lst_of_IG_Days but with different keys in the returned list of dictioinaries to reflect Tumblr data
 	days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 	time_frames = ['12:00am-5:59am', '6:00am-11:59am','12:00pm-5:59pm', '6:00pm-11:59pm']
-	sorted_days_and_times = []
+	sorted_days_and_times = [] #will append to get every day in time frame in order
 	for day in days:
 		for time in time_frames:
-			sorted_days_and_times.append(day + ' ' + time)
+			sorted_days_and_times.append(day + ' ' + time) #each item in the list is a string containing the day and time
 	x = [{'time': timestamp ,'post_type': [] , 'total_notes':0,'count': 0} for timestamp in sorted_days_and_times] #every time has its own dic with post type, total notes, and count all initalized as empty/0
 	return (x)
 
-def get_tumblr_data():
+def get_tumblr_data(): #data accumulation
 	blog = input('Enter a tumblr url! example.tumblr.com: ') #can by any blog! not just authenticating users!
-	if blog not in cache_diction['TB']: 
-		cache_diction['TB'][blog] = []
-		offset = 0 #initalize offset as 0, will beupdated later to accumulate 100 posts
-		while True:
+	if blog not in cache_diction['TB']: #if the blog isnt in the cache dictionary
+		cache_diction['TB'][blog] = [] #initalize a cache dictionary key within the tumblr key to an empty list
+		offset = 0 #initalize offset as 0, will be updated later to accumulate 100 posts
+		while True: #will continue untill 100 posts have been reached
 			TB_request = requests.get('http://api.tumblr.com/v2/blog/{}/posts?api_key={}'.format(blog, info.TBconsumer_key), params = {'offset': offset})
 			TB_data = json.loads(TB_request.text)
 			for item in TB_data['response']['posts']:
@@ -108,11 +108,11 @@ def get_tumblr_data():
 		f = open(fname, 'w') #open the cache file
 		f.write(json.dumps(cache_diction, indent = 4)) #write to the cache file
 		f.close() #close the cache file
-	return cache_diction['TB'][blog]
+	return cache_diction['TB'][blog] #returns a list of 100 post data
 
 my_tumblr_data = get_tumblr_data()
 
-def get_tumblr_info(lst_of_posts):
+def get_tumblr_info(lst_of_posts): #data insights
 	x = lst_of_TB_days()
 	time_frames = {'12:00am-5:59am': ['00','01','02','03','04','05'], '6:00am-11:59am' : ['06','07','08','09','10','11'], '12:00pm-5:59pm' : ['12','13','14','15','16','17'], '6:00pm-11:59pm' : ['18','19','20','21','22','23']} #similar to the tiemframes in the IG function, values in the list are now strings to be compatible with the format that returns from the Tumblr api call
 	for item in lst_of_posts:
@@ -127,51 +127,54 @@ def get_tumblr_info(lst_of_posts):
 				break
 		akey = (TB_post_day + ' ' + TB_post_timeframe)
 		for dic in x:
-			if dic['time'] == akey:
+			if dic['time'] == akey: #finds the dictionary reflecting the day and time of each post
 				ind = x.index(dic)
 				new_dic = dic
-				if TB_post_type not in new_dic['post_type']:
-					new_dic['post_type'].append(TB_post_type)
-				new_dic['total_notes'] += TB_post_notes
-				new_dic['count'] += 1
-				x[ind] = new_dic
+				if TB_post_type not in new_dic['post_type']: #if the post type isnt in the list of post types for this specified time
+					new_dic['post_type'].append(TB_post_type) #append the post type to the list
+				new_dic['total_notes'] += TB_post_notes #add overall notes to the time frame dic key
+				new_dic['count'] += 1 #add one to the count key to indicate 1 more post in the time frame
+				x[ind] = new_dic #replace the old dictionary with the new dictionary
 				break
-	return (x)
+	return (x) #returns a list of dictionaries containing info on the post type, overall notes, and frequency of posts in each time frame
 
 my_tumblr_info = get_tumblr_info(my_tumblr_data)
 
 #IMDB
 print ('\n------------------------------------\n')
 print ('API #3: IMDB\n')
-def get_tv_data(title):
-	if title not in cache_diction['IMDB']:
-		cache_diction['IMDB'][title] = {'Info': {}, 'Seasons': {}}
+def get_tv_data(title): #data accumulation
+	if title not in cache_diction['IMDB']: #if the blog isnt in the cache dictionary 
+		cache_diction['IMDB'][title] = {'Info': {}, 'Seasons': {}} #initalize a cache dictionary key within the IMDB key to a dictionary containing info and seasons
 		base_url = 'http://www.omdbapi.com/'
 		IMDB_response = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title})
 		IMDB_Show_Info = json.loads(IMDB_response.text)
-		totalszns = int(IMDB_Show_Info['totalSeasons'])
-		cache_diction['IMDB'][title]['Info']['Genre'] = IMDB_Show_Info['Genre'].split(', ')
+		totalszns = int(IMDB_Show_Info['totalSeasons']) #pulls the number of total seasons from the api, will be used to iterate through seasons
+		#the info key in the title key contains Genre, Runtime, Rated, Actors, and Plot (for database insertion)
+		cache_diction['IMDB'][title]['Info']['Genre'] = IMDB_Show_Info['Genre'].split(', ') 
 		cache_diction['IMDB'][title]['Info']['Runtime'] = IMDB_Show_Info['Runtime']
 		cache_diction['IMDB'][title]['Info']['Rated'] = IMDB_Show_Info['Rated']
 		cache_diction['IMDB'][title]['Info']['Actors'] = IMDB_Show_Info['Actors']
 		cache_diction['IMDB'][title]['Info']['Plot'] = IMDB_Show_Info['Plot']
 		currentseason = 1
-		while (totalszns - currentseason) >= 0:
+		while (totalszns - currentseason) >= 0: #while loop to go through every season of the show
+		#the season key in the title key contains a dictionary of seasons where every key is the season number and every value is a list of episodes (for databse insertion and data visualization)
 				IMDB_responseX = requests.get(base_url, params = {'apikey': info.IMDBapi_key, 't':title, 'Season': currentseason})
 				IMDB_SeasonX = json.loads(IMDB_responseX.text)
-				cache_diction['IMDB'][title]['Seasons']['Season ' + IMDB_SeasonX['Season']] = IMDB_SeasonX['Episodes']
-				currentseason += 1
-		f = open(fname, 'w')
-		f.write(json.dumps(cache_diction, indent = 4))
-		f.close()
+				cache_diction['IMDB'][title]['Seasons']['Season ' + IMDB_SeasonX['Season']] = IMDB_SeasonX['Episodes'] #adds a key to the the seasons dic with a list of episdoes
+				currentseason += 1 #update the current season varibale by 1
+		f = open(fname, 'w') #open the cache file
+		f.write(json.dumps(cache_diction, indent = 4)) #write to the cache file
+		f.close() #clost the cachefile
 	return cache_diction['IMDB'][title]
 
 my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live', 'Once Upon a Time', 'Supergirl', 'Chicago P.D.', 'The Sopranos', 'House of Cards', 'House', 'The X-Files', 'Downton Abbey', 'Mr. Robot', 'Mad Men', 'Big Little Lies', 'The Night Of']
 
-def get_tv_info(lst_of_shows):
+def get_tv_info(lst_of_shows): #data insights
+#acepts a list of shows
 	shows = []
 	for show in lst_of_shows:
-		showdata = get_tv_data(show)
+		showdata = get_tv_data(show) #refrences the previous function for accessing show info and season info
 		szns = showdata['Seasons']
 		showinfo = showdata['Info']
 		eps = 0
@@ -236,7 +239,17 @@ print ('\n------------------------------------\n')
 print ('API #5: OpenTable\n')
 
 def get_opentable_data():
-	OTcity = input('What city are you looking to eat in? ')
+	OTcity_url = 'https://opentable.herokuapp.com/api/cities'
+	OTcity_request = requests.get (OTcity_url)
+	cities = OTcity_request.text
+	citylist = json.loads(cities)['cities']
+	while True:
+		OTcity = input('What city are you looking to eat in? ')
+		if OTcity in citylist:
+			break
+		else:
+			print ("I'm sorry, that was an invalid city :( ")
+			print ("Please try again. Examples include: Austin, Chicago, New Orleans, San Francisco")
 	if OTcity not in cache_diction['OT']:
 		OTbase_url = 'https://opentable.herokuapp.com/api/restaurants'
 		OTrequest = requests.get(OTbase_url, params = {'city':OTcity, 'per_page':'100'})
@@ -253,7 +266,7 @@ def get_opentable_info(lst_of_restaurants):
 	restaurant_dic = {}
 	for restaurant in lst_of_restaurants:
 		OTfull_address = restaurant['address']+ ', ' + restaurant['city'] + ' ' + restaurant['state'] + ', ' + restaurant['postal_code']
-		OTphone = '({}){}-{}'.format(restaurant['phone'][:3], restaurant['phone'][3:6], restaurant['phone'][-5:-1])
+		OTphone = '({}) {}-{}'.format(restaurant['phone'][:3], restaurant['phone'][3:6], restaurant['phone'][-5:-1])
 		restaurant_dic[restaurant['name']] = {'Address': OTfull_address, 'Phone': OTphone, 'Price_Level': restaurant['price'], 'Coord': (restaurant['lat'], restaurant['lng'])}
 	return restaurant_dic
 
