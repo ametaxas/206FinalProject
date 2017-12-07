@@ -143,6 +143,7 @@ my_tumblr_info = get_tumblr_info(my_tumblr_data)
 #IMDB
 print ('\n------------------------------------\n')
 print ('API #3: IMDB\n')
+continue1 = input('Press enter to view info on a bunch of tv shows!') #used so the program doesnt print out too much for the user to see at once
 def get_tv_data(title): #data accumulation
 	if title not in cache_diction['IMDB']: #if the blog isnt in the cache dictionary 
 		cache_diction['IMDB'][title] = {'Info': {}, 'Seasons': {}} #initalize a cache dictionary key within the IMDB key to a dictionary containing info and seasons
@@ -168,186 +169,196 @@ def get_tv_data(title): #data accumulation
 		f.close() #clost the cachefile
 	return cache_diction['IMDB'][title]
 
-my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live', 'Once Upon a Time', 'Supergirl', 'Chicago P.D.', 'The Sopranos', 'House of Cards', 'House', 'The X-Files', 'Downton Abbey', 'Mr. Robot', 'Mad Men', 'Big Little Lies', 'The Night Of']
+my_IMDB_shows = ['How I Met Your Mother', 'Game of Thrones', 'Gossip Girl', "Grey's Anatomy", 'Suits', 'Criminal Minds', 'Friends', 'Law & Order', 'Scandal', 'The Big Bang Theory', 'The Blacklist', 'Stranger Things', 'This Is Us', 'How to Get Away With Murder', 'Ray Donovan', 'Breaking Bad', 'The Office', 'Modern Family', 'The Vampire Diaries', 'Homeland', 'Saturday Night Live', 'Once Upon a Time', 'Supergirl', 'Chicago P.D.', 'The Sopranos', 'House of Cards', 'House', 'The X-Files', 'Downton Abbey', 'Mr. Robot', 'Mad Men', 'Big Little Lies', 'The Night Of', 'CSI: Crime Scene Investigation', 'ER', 'Law & Order: Special Victims Unit', 'Beverly Hills, 90210', 'Hawaii Five-0']
 
 def get_tv_info(lst_of_shows): #data insights
 #acepts a list of shows
 	shows = []
 	for show in lst_of_shows:
 		showdata = get_tv_data(show) #refrences the previous function for accessing show info and season info
-		szns = showdata['Seasons']
-		showinfo = showdata['Info']
-		eps = 0
-		total_rating = 0
-		NA = 0
-		release_date = szns['Season 1'][0]['Released']
-		release_day = datetime.datetime.strptime(release_date, '%Y-%m-%d').strftime('%A')
+		szns = showdata['Seasons'] #accesses the season key in the showdata dictionary: this key contains a dictionary: the keys in this dictionary are season #s, the values are a list of episodes in the season
+		showinfo = showdata['Info'] #accesses the info key in the showdata dictioanry: this key contains a dictionary: the keys in this dictionary are Genre, Runtime, Actors, and plot; the values are a string representing the info of the show
+		eps = 0 #initalize the number of episodes @ 0 , this will be updated
+		total_rating = 0 #ititalizes the total rating of episodes @ zero, this will be added to and then divided by the total # of episodes
+		NA = 0 #ititalizies the total number of episodes whos rating is not available, this will be used when finding the average rating of all epsidoes
+		release_date = szns['Season 1'][0]['Released'] #accesses the date the first episode was reeased
+		release_day = datetime.datetime.strptime(release_date, '%Y-%m-%d').strftime('%A') #converst the date into a date of the week
 		for season in szns:
 			for episode in szns[season]:
-				eps += 1
-				if episode['imdbRating'] != 'N/A':
+				eps += 1 #update the epsiode variable to reflect the total number of episodes
+				if episode['imdbRating'] != 'N/A': #ensure that the imbd rating is an # 
 					total_rating += float(episode['imdbRating'])
 				else:
-					NA += 1
-		avg_rating = round(total_rating/(eps - NA), 1)
-		print ('{} was released on {}, {} and now has {} episodes'.format(show, release_day, release_date, eps))
+					NA += 1 #keeps track of the # of episodes that are not involved in the average
+		avg_rating = round(total_rating/(eps - NA), 1) #total ratings/number of episodes
+		def endings(day): #function to add an ending to a number
+			if day[-1] == '1':
+				return ('st')
+			elif day[-1] == '2':
+				return ('nd')
+			elif day[-1] == '3':
+				return ('rd')
+			else:
+				return ('th')
+		print ('{} was released on {} and now has {} episodes'.format(show, datetime.datetime.strptime(release_date, '%Y-%m-%d').strftime('%A, %B %-d{}, %Y'.format(endings(release_date.split('-')[-1]))), eps))
 		print ('The average IMDB rating of all {} episodes is {}/10.0 \n'.format(show, avg_rating))
 		shows.append({'Show':show, 'Episodes': eps, 'Release_Day':release_day, 'Avg_Rating':avg_rating, 'Genre': showinfo['Genre'], 'Runtime': showinfo['Runtime'], 'Rated': showinfo['Rated'], 'Actors': showinfo['Actors'], 'Plot': showinfo['Plot']})
-	return (shows)
-
+	return (shows) #returns a list of dictionaries containing show info, will be used for database insertion
 my_show_info = get_tv_info(my_IMDB_shows)
 
 #New York Times
 print ('\n------------------------------------\n')
 print ('API #4: NYT\n')
-def get_nyt_data(term):
+continue2 = input('Press enter to view the 100 most recent articles that contain the search term University of Michigan!') #used so the program doesnt print too much out at once
+def get_nyt_data(term): #data accumulation
 	if term not in cache_diction['NYT']:
 		cache_diction['NYT'][term] = []
-		page = 0
+		page = 0 #initalizas page at 10, will be used to access 100 articles
 		while page != 10:
 			NYT_base_url = 'https://api.nytimes.com/svc/search/v2/articlesearch.json'
 			NYT_request = requests.get(NYT_base_url, params = {'q': term, 'sort': 'newest', 'fl': 'web_url, headline, pub_date, document_type, word_count', 'page': page, 'api-key': info.NYT_APIkey})
 			NYT_data = json.loads(NYT_request.text)
 			for item in NYT_data['response']['docs']:
-				cache_diction['NYT'][term].append(item)
+				cache_diction['NYT'][term].append(item) #append the initalized cache list with the dictionaries containing article info
 			page += 1
-			print ('{}0/100 results retrieved'.format(str(page)))
-			time.sleep(1) #https://stackoverflow.com/questions/510348/how-can-i-make-a-time-delay-in-python
-		f = open(fname, 'w')
-		f.write(json.dumps(cache_diction, indent = 4))
-		f.close()
-	return cache_diction['NYT'][term]
+			print ('{}0/100 results retrieved'.format(str(page))) #allows the user to see how many results were retireved
+			time.sleep(1) #addresses a rate limit 
+			#https://stackoverflow.com/questions/510348/how-can-i-make-a-time-delay-in-python
+		f = open(fname, 'w') #open the cahce file
+		f.write(json.dumps(cache_diction, indent = 4)) #write the cache file
+		f.close() #close the cache file
+	return cache_diction['NYT'][term] #returns a list of dictionaries that contain article information: the articles all contain the search query in their body
 
-def get_nyt_info(term):
-	articles = get_nyt_data(term)
+def get_nyt_info(term): #data insights
+	articles = get_nyt_data(term) 
 	info = {}
 	for article in articles:
-		post_date = article['pub_date'][:10]
-		post_day = datetime.datetime.strptime(post_date, '%Y-%m-%d').strftime('%A')
-		info[article['headline']['main']] = (post_day, article['document_type'], article['word_count'], article['web_url'])
-	print ("Here's a list of the 100 most recent articles that contain the search term '{}':\n".format(term))
-	num = 1
+		post_date = article['pub_date'][:10] #indexes for the post date of the article
+		post_day = datetime.datetime.strptime(post_date, '%Y-%m-%d').strftime('%A') #conversts the date to a time
+		info[article['headline']['main']] = (post_day, article['document_type'], article['word_count'], article['web_url']) #creates a tuple of article information
+	num = 1 #used to indicate the # of the article, will be updated
 	for article in info:
-		print (str(num) + '. ' + article)
+		print (str(num) + '. ' + article) #prints out the number of the article and the headline
 		num += 1
-	return (info)
+	return (info) #returns a dictionary containing tuples
 
-um_nyt_info = get_nyt_info('University of Michigan')
+um_nyt_info = get_nyt_info('University of Michigan') #accesses the 100 most recent articles that contain The Universtiy of Michigan
 
 #OpenTable
 print ('\n------------------------------------\n')
 print ('API #5: OpenTable\n')
 
-def get_opentable_data():
+def get_opentable_data(): #data accumulation
 	OTcity_url = 'https://opentable.herokuapp.com/api/cities'
 	OTcity_request = requests.get (OTcity_url)
 	cities = OTcity_request.text
-	citylist = json.loads(cities)['cities']
+	citylist = json.loads(cities)['cities'] #accesses the list of cities that are compatible with the request
 	while True:
-		OTcity = input('What city are you looking to eat in? ')
-		if OTcity in citylist:
+		OTcity = input('What city are you looking to eat in? ') #allows for a user input of a city name
+		if OTcity in citylist: #ensures that this is a valid city for a request
 			break
 		else:
-			print ("I'm sorry, that was an invalid city :( ")
+			print ("I'm sorry, that was an invalid city :( ") #if it is not, the while loop will continue
 			print ("Please try again. Examples include: Austin, Chicago, New Orleans, San Francisco")
-	if OTcity not in cache_diction['OT']:
-		OTbase_url = 'https://opentable.herokuapp.com/api/restaurants'
-		OTrequest = requests.get(OTbase_url, params = {'city':OTcity, 'per_page':'100'})
-		OTdata = json.loads(OTrequest.text)['restaurants']
-		cache_diction['OT'][OTcity] = OTdata
-		f = open(fname, 'w')
-		f.write(json.dumps(cache_diction, indent = 4))
-		f.close()
+	if OTcity not in cache_diction['OT']: #if the city isnt in the cache dictionary
+		OTbase_url = 'https://opentable.herokuapp.com/api/restaurants' 
+		OTrequest = requests.get(OTbase_url, params = {'city':OTcity, 'per_page':'100'}) #request resturants from the city from with the api
+		OTdata = json.loads(OTrequest.text)['restaurants'] #load the request into a string
+		cache_diction['OT'][OTcity] = OTdata #add the list of dictionaries to the cache diction key
+		f = open(fname, 'w') #open the cache file
+		f.write(json.dumps(cache_diction, indent = 4)) #write hte cache file
+		f.close() #close the cache file
 	return cache_diction['OT'][OTcity]
 
-my_opentable_data = get_opentable_data()
+my_opentable_data = get_opentable_data() #Assigns the variable my open table data to the return of the above funciton
 
-def get_opentable_info(lst_of_restaurants):
+def get_opentable_info(lst_of_restaurants): #data insights
 	restaurant_dic = {}
-	for restaurant in lst_of_restaurants:
-		OTfull_address = restaurant['address']+ ', ' + restaurant['city'] + ' ' + restaurant['state'] + ', ' + restaurant['postal_code']
-		OTphone = '({}) {}-{}'.format(restaurant['phone'][:3], restaurant['phone'][3:6], restaurant['phone'][-5:-1])
-		restaurant_dic[restaurant['name']] = {'Address': OTfull_address, 'Phone': OTphone, 'Price_Level': restaurant['price'], 'Coord': (restaurant['lat'], restaurant['lng'])}
-	return restaurant_dic
+	for restaurant in lst_of_restaurants: #for every dictionary in the list of resturant data
+		OTfull_address = restaurant['address']+ ', ' + restaurant['city'] + ' ' + restaurant['state'] + ', ' + restaurant['postal_code'] #creats a string that compiles the full address from the resturant dictionary
+		OTphone = '({}) {}-{}'.format(restaurant['phone'][:3], restaurant['phone'][3:6], restaurant['phone'][-5:-1]) #string formatting to make the phonenumber #pretty to be inserted in the data
+		restaurant_dic[restaurant['name']] = {'Address': OTfull_address, 'Phone': OTphone, 'Price_Level': restaurant['price'], 'Coord': (restaurant['lat'], restaurant['lng'])} #adds a key (Resturant name) to the resturant dic whos value is a dictionary containing address, phone number, price level, and coordinates
+	return restaurant_dic #returns a dicitonary of dictionaries!
 
-my_opentable_info = get_opentable_info(my_opentable_data)
+my_opentable_info = get_opentable_info(my_opentable_data) #assigns the variable my open table info to the return of the above funtion
 
 #Database creation
-conn = sqlite3.connect('206Final_Project.sqlite')
+conn = sqlite3.connect('206Final_Project.sqlite') 
 cur = conn.cursor()
 
-cur.execute('DROP TABLE IF EXISTS Instagram')
-cur.execute('CREATE TABLE Instagram (Weekday TEXT, Time_Frame TEXT, Num_Posts INTEGER, Total_Likes INTEGER, Total_Comments INTEGER, Avg_Likes INTEGER, Avg_Comments INTEGER)')
+cur.execute('DROP TABLE IF EXISTS Instagram') #needed to prevent errors associated with running the code multiple times
+cur.execute('CREATE TABLE Instagram (Weekday TEXT, Time_Frame TEXT, Num_Posts INTEGER, Total_Likes INTEGER, Total_Comments INTEGER, Avg_Likes INTEGER, Avg_Comments INTEGER)') #creates columns in the Instagram table
 
-cur.execute('DROP TABLE IF EXISTS Tumblr')
-cur.execute('CREATE TABLE Tumblr (Weekday TEXT, Time_Frame TEXT, Num_Posts TEXT, Post_Types TEXT, Total_Notes INTEGER, Avg_Notes INTEGER)')
+cur.execute('DROP TABLE IF EXISTS Tumblr')#needed to prevent errors associated with running the code multiple times
+cur.execute('CREATE TABLE Tumblr (Weekday TEXT, Time_Frame TEXT, Num_Posts TEXT, Post_Types TEXT, Total_Notes INTEGER, Avg_Notes INTEGER)')#creates columns in the Tumblr table
 
-cur.execute('DROP TABLE IF EXISTS IMDB')
-cur.execute('CREATE TABLE IMDB (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT, Genre TEXT, Runtime TEXT, Rated TEXT, Actors TEXT, Plot TEXT)')
+cur.execute('DROP TABLE IF EXISTS IMDB')#needed to prevent errors associated with running the code multiple times
+cur.execute('CREATE TABLE IMDB (Title TEXT, Episode_Count INT, Release_Day TEXT, Rating TEXT, Genre TEXT, Runtime TEXT, Rated TEXT, Actors TEXT, Plot TEXT)')#creates columns in the IMDB table
 
-cur.execute('DROP TABLE IF EXISTS NYT')
-cur.execute('CREATE TABLE NYT (Headline TEXT, Post_Day TEXT, Document_Type TEXT, Word_Count TEXT, URL TEXT)')
+cur.execute('DROP TABLE IF EXISTS NYT')#needed to prevent errors associated with running the code multiple times
+cur.execute('CREATE TABLE NYT (Headline TEXT, Post_Day TEXT, Document_Type TEXT, Word_Count TEXT, URL TEXT)')#creates columns in the NYT table
 
-cur.execute('DROP TABLE IF EXISTS OpenTable')
-cur.execute('CREATE TABLE OpenTable (Name TEXT, Address TEXT, Phone TEXT, Price_Level INT, Coordinates TEXT)')
+cur.execute('DROP TABLE IF EXISTS OpenTable')#needed to prevent errors associated with running the code multiple times
+cur.execute('CREATE TABLE OpenTable (Name TEXT, Address TEXT, Phone TEXT, Price_Level INT, Coordinates TEXT)')#creates columns in the Open Table table
 
-for day in myinstatimes:
-	if day['count'] == 0:
+#Database insertion
+for day in myinstatimes: #for every timeframe in the list of dictionaries
+	if day['count'] == 0: #prevents dividing by 0 when taking the average likes and comments
 		avgl = 0
 		avgc = 0
 	else:
-		avgl = day['likes']/day['count']
-		avgc = day['comments']/day['count']
-	tup = (day['time'].split(' ')[0], day['time'].split(' ')[1], day['count'], day['likes'], day['comments'], avgl, avgc)
-	cur.execute('INSERT INTO Instagram (Weekday, Time_Frame, Num_Posts, Total_Likes, Total_Comments, Avg_Likes, Avg_Comments) VALUES (?,?,?,?,?,?,?)', tup)
+		avgl = day['likes']/day['count'] #calculate average likes
+		avgc = day['comments']/day['count'] #calculate average comments
+	tup = (day['time'].split(' ')[0], day['time'].split(' ')[1], day['count'], day['likes'], day['comments'], avgl, avgc) #creating tuple to reflect the values in the table
+	cur.execute('INSERT INTO Instagram (Weekday, Time_Frame, Num_Posts, Total_Likes, Total_Comments, Avg_Likes, Avg_Comments) VALUES (?,?,?,?,?,?,?)', tup) #insert the tuple into the table
 
-for day in my_tumblr_info:
-	if day['count'] == 0:
+for day in my_tumblr_info: #for every timefram in the list of dictionaries
+	if day['count'] == 0: #prevents diving by 0 when taking the average notes
 		avgn = 0
 	else:
-		avgn = int((day['total_notes'])/(day['count']))
-	tup = (day['time'].split(' ')[0], day['time'].split(' ')[1], day['count'], (', '.join(day['post_type'])), day['total_notes'], avgn)
-	cur.execute('INSERT INTO Tumblr (Weekday, Time_Frame, Num_Posts, Post_Types, Total_Notes, Avg_Notes) VALUES (?,?,?,?,?,?)', tup)
+		avgn = int((day['total_notes'])/(day['count'])) #calculate the average notes
+	tup = (day['time'].split(' ')[0], day['time'].split(' ')[1], day['count'], (', '.join(day['post_type'])), day['total_notes'], avgn) #creating tuple to reflect the values in the table
+	cur.execute('INSERT INTO Tumblr (Weekday, Time_Frame, Num_Posts, Post_Types, Total_Notes, Avg_Notes) VALUES (?,?,?,?,?,?)', tup) #insert the tuple into the table
 
-for show in sorted(my_show_info, key = lambda x: x['Episodes']):
-	tup = (show['Show'], show['Episodes'], show['Release_Day'], show['Avg_Rating'], ', '.join(show['Genre']), show['Runtime'], show['Rated'], show['Actors'], show['Plot'])
-	cur.execute('INSERT INTO IMDB (Title, Episode_Count, Release_Day, Rating, Genre, Runtime, Rated, Actors, Plot) VALUES (?,?,?,?,?,?,?,?,?)', tup)
+for show in sorted(my_show_info, key = lambda x: x['Episodes']): #sorts the data inserted into the table by the number of episodes (for clearer insights)
+	tup = (show['Show'], show['Episodes'], show['Release_Day'], show['Avg_Rating'], ', '.join(show['Genre']), show['Runtime'], show['Rated'], show['Actors'], show['Plot']) #tuple representign the values in the table
+	cur.execute('INSERT INTO IMDB (Title, Episode_Count, Release_Day, Rating, Genre, Runtime, Rated, Actors, Plot) VALUES (?,?,?,?,?,?,?,?,?)', tup) #insert the tuple into the table
 
-for article in um_nyt_info:
-	tup = (article, ) + um_nyt_info[article]
-	cur.execute('INSERT INTO NYT (Headline, Post_Day, Document_Type, Word_Count, URL) VALUES (?,?,?,?,?)', tup)
+for article in um_nyt_info: #for every article in the dictionary of tuples
+	tup = (article, ) + um_nyt_info[article] #add the article name to the tulpe associated with the dictionary value
+	cur.execute('INSERT INTO NYT (Headline, Post_Day, Document_Type, Word_Count, URL) VALUES (?,?,?,?,?)', tup) #insert the tuple into the table
 
-for rest in my_opentable_info:
-	tup = (rest, my_opentable_info[rest]['Address'], my_opentable_info[rest]['Phone'], my_opentable_info[rest]['Price_Level'], str(my_opentable_info[rest]['Coord']))
-	cur.execute('INSERT INTO OpenTable (Name, Address, Phone, Price_Level, Coordinates) VALUES (?,?,?,?,?)', tup)
-conn.commit()
+for rest in my_opentable_info: #for every resturaunt in the dictionary of dictionaries
+	tup = (rest, my_opentable_info[rest]['Address'], my_opentable_info[rest]['Phone'], my_opentable_info[rest]['Price_Level'], str(my_opentable_info[rest]['Coord'])) #tuple representing the values in the table
+	cur.execute('INSERT INTO OpenTable (Name, Address, Phone, Price_Level, Coordinates) VALUES (?,?,?,?,?)', tup) #insert the tuple into the database
+conn.commit() #commit the changes to the database
 
 #Data Visualization
 #	Tumblr and Instagram Bar Chart
 plotly.tools.set_credentials_file(username='ametaxas', api_key=info.PLapi_key)
-total_insta_count = sum([int(dic['count']) for dic in myinstatimes])
+total_insta_count = sum([int(dic['count']) for dic in myinstatimes]) #gets the total number of posts in the myinstatimes data
 trace1 = go.Bar(
-	x = [dic['time'] for dic in myinstatimes],
-	y = [(dic['count']/total_insta_count) for dic in myinstatimes],
-	text = ['{}/{} posts'.format(str(dic['count']), str(total_insta_count)) for dic in myinstatimes],
-	name = 'Instagram',
+	x = [dic['time'] for dic in myinstatimes], #x is a list of tiemeframes (from the list of dictionaries)
+	y = [(dic['count']/total_insta_count) for dic in myinstatimes], #y is the frequency of posts in each time frame (fram the list of dictioanries)
+	text = ['{}/{} posts'.format(str(dic['count']), str(total_insta_count)) for dic in myinstatimes], #text shows the fraction of posts posted on this day (posts on that day/total posts)
+	name = 'Instagram', #name is instagram data
 	marker = dict(
-		color='rgb(146,34,150)',
+		color='rgb(146,34,150)', #fill color is a pinkish color that is similar to the instagram logo
 		line=dict(
-			color='rgb(232,116,16)',
+			color='rgb(232,116,16)', #line is an orange color that is similar to the instagram logo
 			width=2),
 		)
 )
-total_tumblr_count = sum([int(dic['count']) for dic in my_tumblr_info])
+total_tumblr_count = sum([int(dic['count']) for dic in my_tumblr_info]) #gets the total number of posts in the my_tumblr_info data
 trace2 = go.Bar(
-	x = [dic['time'] for dic in my_tumblr_info],
-	y = [(int(dic['count'])/total_tumblr_count) for dic in my_tumblr_info],
-	text = ['{}/{} posts'.format(str(dic['count']), str(total_tumblr_count)) for dic in my_tumblr_info],
-	name = 'Tumblr',
+	x = [dic['time'] for dic in my_tumblr_info], #x is a list of timeframes (from the list of dicitoanreis)
+	y = [(int(dic['count'])/total_tumblr_count) for dic in my_tumblr_info], #y is the frequency of posts in each timefram (From the list of dictionaries)
+	text = ['{}/{} posts'.format(str(dic['count']), str(total_tumblr_count)) for dic in my_tumblr_info], #text shows the fractin of posts posted on this day (posts on that day/total posts)
+	name = 'Tumblr', #name is the instagram data
 	marker = dict(
-		color='rgb(40,75,104)',
+		color='rgb(40,75,104)', #fill color is a teal color that is similar to the tumblr logo
 		line=dict(
-			color='rgb(77,79,81)',
+			color='rgb(77,79,81)', #line is an gray color similar ot the tumblr logo
 			width=2),
 		)
 )
@@ -358,82 +369,84 @@ layout = go.Layout(
 	height = 1000,
 	hovermode = 'closest',
 	margin = go.Margin(
-		l=100,
+		l=100, #prevents text from overlapping on the side
 		r=50,
-		b=300,
+		b=300, #prevents text from overlapping at the bottom
 		t=100,
 		pad=4
 	),
-	title = 'Instagram and Tumblr activity',
+	title = 'Instagram and Tumblr activity', #title of the graph
 	xaxis=dict(
-		title='Time of Day',
+		title='Time of Day', #title of the x axis
 		titlefont=dict(
 			size=16,
-			color='rgb(107,107,107)'
+			color='rgb(107,107,107)' #color of the axis is black
 		),
 		tickfont = dict(
 			size=14,
-			color='rgb(107,107,107)'
+			color='rgb(107,107,107)' #color of the ticks are black
 		)
 	),
 	yaxis=dict(
-		title='Percentage of Posts',
+		title='Percentage of Posts', #title of the y axis
 		titlefont=dict(
 			size=16,
-			color='rgb(107,107,107)'
+			color='rgb(107,107,107)' #color of the axis is blakc
 		),
 		tickfont = dict(
 			size=14,
-			color='rgb(107,107,107)'
+			color='rgb(107,107,107)' #color of the ticks are blakc
 		),
-		tickformat='%'
+		tickformat='%' #y axis is formatted as a percentage of overall posts
 	),
 	legend=dict(
 		x=0,
 		y=1.0,
-		bgcolor='rgba(255,255,255,0)',
-		bordercolor='rgba(255,255,255,0)'
+		bgcolor='rgba(255,255,255,0)', #background color is white
+		bordercolor='rgba(255,255,255,0)' #boarder coor is white
 	),
-	barmode = 'group',
-	bargap = 0.0,
-	bargroupgap=0.0,
+	barmode = 'group', #grouped bargraph
+	bargap = 0.0, #no gaps between bars
+	bargroupgap=0.0, #no gaps between bar groups
 )
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig, filename='IG_TB_bar')
+fig = go.Figure(data=data, layout=layout) 
+py.iplot(fig, filename='IG_TB_bar') #plots the graph
 #		NYT Wordcloud
 d = path.dirname(__file__)
-text = (' ').join(um_nyt_info)
-um_mask = np.array(Image.open(path.join(d, 'm.png')))
-image_colors = ImageColorGenerator(um_mask)
-stopwords = set(STOPWORDS)
-stopwords.add('Dies')
-wc = WordCloud(mask= um_mask, stopwords=stopwords).generate(text)
+text = (' ').join(um_nyt_info) #joins the list of articles into one long string
+um_mask = np.array(Image.open(path.join(d, 'm.png'))) #uploads the 'm' image from the directory for the colorformatting of the word cloud
+image_colors = ImageColorGenerator(um_mask) #assigns the colors from the image to the variable image_colros
+stopwords = set(STOPWORDS) #initalizes stop words
+stopwords.add('Dies') #prevents undesired words from appearing in the wordcloud
+wc = WordCloud(mask= um_mask, stopwords=stopwords, background_color = 'black').generate(text) #builds the wordcloud
 plt.imshow(wc.recolor(color_func=image_colors), interpolation='bilinear')
 plt.axis('off')
 plt.figure()
-wc.to_file(path.join(d, 'um.png'))
+wc.to_file(path.join(d, 'um.png')) #saves the wordclould to a png file in the directory
 #		IMDB Scatterplot
-genre_colors = {'Comedy': 'rgb(255,240,79)', 'Adventure': 'rgb(24,165,38)', 'Drama': 'rgb(113,27,163)', 'Crime': 'rgb(204,132,0)', 'Action': 'rgb(255,79,79)'}
-trace = go.Scatter(
-	x = [show['Episodes'] for show in my_show_info],
-	y = [show['Avg_Rating'] for show in my_show_info],
-	legendgroup = [show['Genre'][0] for show in my_show_info],
-	mode = 'markers',
-	text = [show['Show'] for show in my_show_info],
-	name = [show['Genre'][0] for show in my_show_info],
-	marker = dict(
-		size = 20,
-		color = [genre_colors[(show['Genre'][0])] for show in my_show_info],
-		line = dict(
-			width = 1,
-			color = 'rgb(0,0,0)')
-		)
-)
-data = [trace]
+genre_colors = {'Comedy': 'rgb(255,240,79)', 'Adventure': 'rgb(24,165,38)', 'Drama': 'rgb(113,27,163)', 'Crime': 'rgb(204,132,0)', 'Action': 'rgb(255,79,79)'} #assigns different genres to different colors for labling in the chart
+data = []
+for genre in genre_colors: #for every genre in the above dictionary
+	trace = go.Scatter( #set a new trace that includes data from the shows in that genre
+		x = [show['Episodes'] for show in my_show_info if show['Genre'][0] == genre], #x is the number of epsides of the show
+		y = [show['Avg_Rating'] for show in my_show_info if show['Genre'][0] == genre], #y is the average rating of all the epsidodes
+		legendgroup = genre, #legend is grouped by genre
+		mode = 'markers',
+		text = [show['Show'] for show in my_show_info if show['Genre'][0] == genre], #text is the name of the tvshow
+		name = genre, #name is the genre of the tv show
+		marker = dict(
+			size = 20,
+			color = genre_colors[genre], #color is the color from the genere_colors dictionary
+			line = dict(
+				width = 1,
+				color = 'rgb(0,0,0)')
+			)
+	)
+	data.append(trace) #add the new trace to the data list
 layout = dict(
-	title = 'Episode Count vs. Rating',
-	yaxis = dict(title = 'Rating'),
-	xaxis = dict(title = 'Episode Count')
+	title = 'Episode Count vs. Rating', #title of the chart is episode count vs rating
+	yaxis = dict(title = 'Rating'), #y axis is rating
+	xaxis = dict(title = 'Episode Count') #x axis is episode count
 )
 fig = dict(data = data, layout = layout)
 py.iplot(fig, filename = 'IMDB_Scatter')
